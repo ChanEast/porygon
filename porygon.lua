@@ -140,10 +140,6 @@ porygon = (function()
     end
 
     function porygon.packet:serialize()
-        if #self.patterns == 0 then
-            error('not enough patterns, min is 1')
-        end
-
         -- header (4 bytes)
         -- packet[0]: time to wait for input, in m50
         -- packet[1]: 0
