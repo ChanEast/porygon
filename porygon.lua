@@ -1,4 +1,22 @@
-porygon = (function()
+-- porygon: an unofficial Pokemon Go Plus SDK
+--
+-- Copyright (C) 2016 Morgan Jones
+--
+-- This program is free software; you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation; either version 2 of the License, or
+-- (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License along
+-- with this program; if not, write to the Free Software Foundation, Inc.,
+-- 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+return (function()
     local porygon = {}
 
     local is_a = function(x, t)
@@ -63,6 +81,18 @@ porygon = (function()
     porygon.color = ctor(function(color, obj)
         -- Nothing for now
     end, {r = valid_rgb, g = valid_rgb, b = valid_rgb})
+
+    porygon.color.rgb = function(r, g, b)
+        local rgbto4 = function(v)
+            if not is_a(v, 'number') or v < 0.0 or v > 1.0 then
+                error('invalid floating-point RGB value')
+            end
+
+            return math.floor((v * 0xf) + 0.5)
+        end
+
+        return porygon.color.rgb4(rgbto4(r), rgbto4(g), rgbto4(b))
+    end
 
     porygon.color.rgb8 = function(r, g, b)
         local rgb8to4 = function(v)
@@ -142,8 +172,8 @@ porygon = (function()
     function porygon.packet:serialize()
         -- header (4 bytes)
         -- packet[0]: time to wait for input, in m50
-        -- packet[1]: 0
-        -- packet[2]: 0
+        -- packet[1]: 0 (unknown: seen 2 and 254)
+        -- packet[2]: 0 (unknown: seen 254)
         -- packet[3]: PPPNNNNN, where P is priority; N is number of patterns
         local packet = {
             m50e(self.duration),
