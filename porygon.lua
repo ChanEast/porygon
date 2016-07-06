@@ -24,7 +24,7 @@ return (function()
     end
 
     local is_instance = function(x, tab)
-        return getmetatable(x) == tab
+        return is_a(x, 'table') and getmetatable(x) == tab
     end
 
     local ctor = function(fn, types)
