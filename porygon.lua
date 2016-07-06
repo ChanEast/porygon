@@ -24,7 +24,7 @@ return (function()
     end
 
     local is_instance = function(x, tab)
-        return getmetatable(x) == tab
+        return is_a(x, 'table') and getmetatable(x) == tab
     end
 
     local ctor = function(fn, types)
@@ -45,7 +45,7 @@ return (function()
         types = tablify(types)
         for k, v in pairs(types) do
             if is_a(v, 'string') then
-                v = function(x)
+                types[k] = function(x)
                     return is_a(x, v)
                 end
             end
