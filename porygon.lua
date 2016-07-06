@@ -176,7 +176,7 @@ return (function()
         -- packet[2]: 0 (unknown: seen 254)
         -- packet[3]: PPPNNNNN, where P is priority; N is number of patterns
         local packet = {
-            m50e(self.duration),
+            m50e(self.delay),
             0,
             0,
             bit32.bor(bit32.lshift(bit32.extract(self.priority, 0, 3), 5),
