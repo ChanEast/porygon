@@ -45,7 +45,7 @@ return (function()
         types = tablify(types)
         for k, v in pairs(types) do
             if is_a(v, 'string') then
-                v = function(x)
+                types[k] = function(x)
                     return is_a(x, v)
                 end
             end
