@@ -1,4 +1,4 @@
--- porygon: an unofficial Pokemon Go Plus SDK
+-- porygon: the unofficial Pokemon Go Plus SDK
 --
 -- Copyright (C) 2016 Morgan Jones
 --
