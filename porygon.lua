@@ -301,5 +301,60 @@ return (function()
         return packet
     end
 
+    porygon.device = ctor(function(device)
+        device:_init()
+    end)
+
+    function porygon.device:color(color)
+        if not valid_color(color) then
+            err 'invalid color'
+        end
+
+        self:_set_color(color)
+    end
+
+    function porygon.device:get_color()
+        return self:_get_color()
+    end
+
+    function porygon.device:vibrate(level)
+        if not valid_3bit(level) then
+            err 'invalid vibration level'
+        end
+
+        self:_set_vibrate(level)
+    end
+
+    function porygon.device:get_vibrate()
+        return self:_get_vibrate()
+    end
+
+    function porygon.device:_init()
+        -- Simulated "hardware" API:
+        -- start with the LEDs "off" and the motor "not vibrating"
+        self.current_color = porygon.color.rgb4(0, 0, 0)
+        self.current_vibrate = 0
+    end
+
+    function porygon.device:_get_color()
+        -- Simulated "hardware" API
+        return self.current_color
+    end
+
+    function porygon.device:_get_vibrate()
+        -- Simulated "hardware" API
+        return self.current_vibrate
+    end
+
+    function porygon.device:_set_color(color)
+        -- Simulated "hardware" API
+        self.current_color = color
+    end
+
+    function porygon.device:_set_vibrate(vibrate)
+        -- Simulated "hardware" API
+        self.current_vibrate = vibrate
+    end
+
     return porygon
 end)()

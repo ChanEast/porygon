@@ -54,17 +54,23 @@ porygon.test.compare_tables = function(a, b)
     porygon.test.dump_table(b)
 end
 
+function fail()
+    print(debug.traceback())
+    assert(false)
+end
+
 function assert_equals(a, b)
     if type(a) == 'table' and type(b) == 'table' and
         type(a.equals) == 'function' and type(b.equals) == 'function' then
         local c, d = a:equals(b), b:equals(a)
         if not c or not d then
             porygon.test.compare_tables(a, b)
+            fail()
         end
-        assert(c)
-        assert(d)
     else
-        assert(a == b)
+        if a ~= b then
+            fail()
+        end
     end
 end
 
@@ -74,26 +80,24 @@ function assert_not_equals(a, b)
         local c, d = a:equals(b), b:equals(a)
         if c or d then
             porygon.test.compare_tables(a, b)
+            fail()
         end
-        assert(not c)
-        assert(not d)
     else
-        assert(a ~= b)
+        if a == b then
+            fail()
+        end
     end
 end
 
 local verbose = porygon.test.env2bool('VERBOSE')
 function assert_throws(fn)
     local status, err = pcall(fn)
-    assert(not status)
-    assert(type(err) == 'string')
+    if status or type(err) ~= 'string' then
+        fail()
+    end
     if verbose then
         print('caught error in assert_throws: ' .. err)
     end
-end
-
-function fail()
-    assert(false)
 end
 
 local test_color = function()
@@ -500,6 +504,40 @@ local test_packet_round_trip_full = function()
     round_trip(original)
 end
 
+local test_device = function()
+    local device = porygon.device.new()
+    local color = porygon.color.rgb4(0, 0, 0)
+
+    -- device should be "off"
+    assert_equals(device:get_color(), color)
+    assert_equals(device:get_vibrate(), 0)
+end
+
+local test_device_setters = function()
+    local device = porygon.device.new()
+
+    assert_throws(function()
+        device:color()
+    end)
+
+    assert_throws(function()
+        device:color(0)
+    end)
+
+    assert_throws(function()
+        device:vibrate(-1)
+    end)
+
+    assert_throws(function()
+        device:vibrate(42)
+    end)
+
+    device:color(porygon.color.rgb4(1, 2, 3))
+    device:vibrate(4)
+    assert_equals(device:get_color(), porygon.color.rgb4(1, 2, 3))
+    assert_equals(device:get_vibrate(), 4)
+end
+
 local tests = {
     {color = test_color},
     {color_invalid = test_color_invalid},
@@ -516,7 +554,9 @@ local tests = {
     {packet_add = test_packet_add},
     {packet_unpack = test_packet_unpack},
     {packet_round_trip_empty = test_packet_round_trip_empty},
-    {packet_round_trip_full = test_packet_round_trip_full}
+    {packet_round_trip_full = test_packet_round_trip_full},
+    {device = test_device},
+    {device_setters = test_device_setters}
 }
 
 print(string.format('== porygon test harness: running %d tests', #tests))
