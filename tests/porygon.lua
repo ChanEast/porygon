@@ -47,13 +47,6 @@ porygon.test.dump_table = function(table, nesting)
     end
 end
 
-porygon.test.compare_tables = function(a, b)
-    print('=== First table')
-    porygon.test.dump_table(a)
-    print('=== Second table')
-    porygon.test.dump_table(b)
-end
-
 function fail()
     print(debug.traceback())
     assert(false)
@@ -64,7 +57,6 @@ function assert_equals(a, b)
         type(a.equals) == 'function' and type(b.equals) == 'function' then
         local c, d = a:equals(b), b:equals(a)
         if not c or not d then
-            porygon.test.compare_tables(a, b)
             fail()
         end
     else
@@ -79,7 +71,6 @@ function assert_not_equals(a, b)
         type(a.equals) == 'function' and type(b.equals) == 'function' then
         local c, d = a:equals(b), b:equals(a)
         if c or d then
-            porygon.test.compare_tables(a, b)
             fail()
         end
     else
@@ -101,9 +92,9 @@ function assert_throws(fn)
 end
 
 local test_color = function()
-    local c1 = porygon.color.new{r = 0x1, g = 0x2, b = 0x3}
-    local c2 = porygon.color.new{r = 0x1, g = 0x2, b = 0x3}
-    local c3 = porygon.color.new{r = 0x4, g = 0x5, b = 0x6}
+    local c1 = porygon.color.new{x = 1.0, y = 0.5, z = 0.1}
+    local c2 = porygon.color.new{x = 1.0, y = 0.5, z = 0.1}
+    local c3 = porygon.color.new{x = 0.0, y = 0.5, z = 0.1}
     assert_equals(c1, c2)
     assert_not_equals(c1, c3)
     assert_not_equals(c2, c3)
@@ -115,69 +106,57 @@ local test_color_invalid = function()
     end)
 
     assert_throws(function()
-        porygon.color.new{g = 0, b = 0}
+        porygon.color.new{y = 0, z = 0}
     end)
 
     assert_throws(function()
-        porygon.color.new{r = 0, b = 0}
+        porygon.color.new{x = 0, z = 0}
     end)
 
     assert_throws(function()
-        porygon.color.new{r = 0, g = 0}
+        porygon.color.new{x = 0, y = 0}
     end)
 
     assert_throws(function()
-        porygon.color.new{r = -1, g = 0, b = 0}
+        porygon.color.new{x = 'a', y = 0, z = 0}
     end)
 
     assert_throws(function()
-        porygon.color.new{r = 0x10, g = 0, b = 0}
+        porygon.color.new{x = 0, y = {}, z = 0}
     end)
 
     assert_throws(function()
-        porygon.color.new{r = 0, g = -1, b = 0}
-    end)
-
-    assert_throws(function()
-        porygon.color.new{r = 0, g = 0x10, b = 0}
-    end)
-
-    assert_throws(function()
-        porygon.color.new{r = 0, g = 0, b = -1}
-    end)
-
-    assert_throws(function()
-        porygon.color.new{r = 0, g = 0, b = 0x10}
-    end)
-
-    assert_throws(function()
-        porygon.color.new{r = 'a', g = 0, b = 0}
-    end)
-
-    assert_throws(function()
-        porygon.color.new{r = 0, g = {}, b = 0}
-    end)
-
-    assert_throws(function()
-        porygon.color.rgb4{r = 0, g = 0, b = nil}
+        porygon.color.rgb4{x = 0, y = 0, z = nil}
     end)
 end
 
 local test_color_rgb = function()
-    local prototype = porygon.color.new{r = 0x7, g = 0xf, b = 0x0}
-    local rgb = porygon.color.rgb(0.4666, 1.0, 0.0)
-    assert_equals(prototype, rgb)
+    local c1 = porygon.color.rgb(0.1, 0.2, 0.3)
+    local c2 = porygon.color.rgb(0.1, 0.2, 0.3)
+    local c3 = porygon.color.rgb(0.2, 0.3, 0.4)
+    assert_equals(c1, c2)
+    assert_not_equals(c1, c3)
+
+    local c1r, c1g, c1b = c1:to_rgb()
+    local c2r, c2g, c2b = c2:to_rgb()
+    local c3r, c3g, c3b = c3:to_rgb()
+    assert_equals(c1r, c2r)
+    assert_equals(c1g, c2g)
+    assert_equals(c1b, c2b)
+    assert_not_equals(c1r, c3r)
+    assert_not_equals(c1g, c3g)
+    assert_not_equals(c1b, c3b)
 end
 
 local test_color_rgb_invalid = function()
     assert_throws(function()
         porygon.color.rgb(-1, 0, 0)
     end)
-    
+
     assert_throws(function()
         porygon.color.rgb(2, 0, 0)
     end)
-    
+
     assert_throws(function()
         porygon.color.rgb(0, -1, 0)
     end)
@@ -208,16 +187,37 @@ local test_color_rgb_invalid = function()
 end
 
 local test_color_rgb8 = function()
-    local prototype = porygon.color.new{r = 0x8, g = 0xf, b = 0x0}
-    local rgb8 = porygon.color.rgb8(0x7f, 0xfc, 0x01)
-    assert_equals(prototype, rgb8)
+    local c1 = porygon.color.rgb8(10, 20, 30)
+    local c2 = porygon.color.rgb8(10, 20, 30)
+    local c3 = porygon.color.rgb8(20, 30, 40)
+    assert_equals(c1, c2)
+    assert_not_equals(c1, c3)
+
+    local c1r, c1g, c1b = c1:to_rgb8()
+    local c2r, c2g, c2b = c2:to_rgb8()
+    local c3r, c3g, c3b = c3:to_rgb8()
+    assert_equals(c1r, 10)
+    assert_equals(c1g, 20)
+    assert_equals(c1b, 30)
+    assert_equals(c2r, 10)
+    assert_equals(c2g, 20)
+    assert_equals(c2b, 30)
+    assert_equals(c1r, c2r)
+    assert_equals(c1g, c2g)
+    assert_equals(c1b, c2b)
+    assert_equals(c3r, 20)
+    assert_equals(c3g, 30)
+    assert_equals(c3b, 40)
+    assert_not_equals(c1r, c3r)
+    assert_not_equals(c1g, c3g)
+    assert_not_equals(c1b, c3b)
 end
 
 local test_color_rgb8_invalid = function()
     assert_throws(function()
         porygon.color.rgb8(-1, 0, 0)
     end)
-    
+
     assert_throws(function()
         porygon.color.rgb8(0x100, 0, 0)
     end)
@@ -225,19 +225,19 @@ local test_color_rgb8_invalid = function()
     assert_throws(function()
         porygon.color.rgb8(0, -1, 0)
     end)
-    
+
     assert_throws(function()
         porygon.color.rgb8(0, 0x100, 0)
     end)
-    
+
     assert_throws(function()
         porygon.color.rgb8(0, 0, -1)
     end)
-    
+
     assert_throws(function()
         porygon.color.rgb8(0, 0, 0x100)
     end)
-    
+
     assert_throws(function()
         porygon.color.rgb8('a', 0, 0)
     end)
@@ -245,16 +245,37 @@ local test_color_rgb8_invalid = function()
     assert_throws(function()
         porygon.color.rgb8(0, {}, 0)
     end)
-    
+
     assert_throws(function()
         porygon.color.rgb8(0, 0, nil)
     end)
 end
 
 local test_color_rgb4 = function()
-    local prototype = porygon.color.new{r = 0x1, g = 0x2, b = 0x3}
-    local rgb4 = porygon.color.rgb4(0x1, 0x2, 0x3)
-    assert_equals(prototype, rgb4)
+    local c1 = porygon.color.rgb4(1, 2, 3)
+    local c2 = porygon.color.rgb4(1, 2, 3)
+    local c3 = porygon.color.rgb4(2, 3, 4)
+    assert_equals(c1, c2)
+    assert_not_equals(c1, c3)
+
+    local c1r, c1g, c1b = c1:to_rgb4()
+    local c2r, c2g, c2b = c2:to_rgb4()
+    local c3r, c3g, c3b = c3:to_rgb4()
+    assert_equals(c1r, 1)
+    assert_equals(c1g, 2)
+    assert_equals(c1b, 3)
+    assert_equals(c2r, 1)
+    assert_equals(c2g, 2)
+    assert_equals(c2b, 3)
+    assert_equals(c1r, c2r)
+    assert_equals(c1g, c2g)
+    assert_equals(c1b, c2b)
+    assert_equals(c3r, 2)
+    assert_equals(c3g, 3)
+    assert_equals(c3b, 4)
+    assert_not_equals(c1r, c3r)
+    assert_not_equals(c1g, c3g)
+    assert_not_equals(c1b, c3b)
 end
 
 local test_color_rgb4_invalid = function()
@@ -270,15 +291,15 @@ local test_color_rgb4_invalid = function()
     assert_throws(function()
         porygon.color.rgb4(0, -1, 0)
     end)
-    
+
     assert_throws(function()
         porygon.color.rgb4(0, 0x10, 0)
     end)
-    
+
     assert_throws(function()
         porygon.color.rgb4(0, 0, -1)
     end)
-    
+
     assert_throws(function()
         porygon.color.rgb4(0, 0, 0x10)
     end)
@@ -286,19 +307,35 @@ local test_color_rgb4_invalid = function()
     assert_throws(function()
         porygon.color.rgb4('a', 0, 0)
     end)
-    
+
     assert_throws(function()
         porygon.color.rgb4(0, {}, 0)
     end)
-    
+
     assert_throws(function()
         porygon.color.rgb4(0, 0, nil)
     end)
 end
 
+local test_color_lerp = function()
+    local c1 = porygon.color.rgb8(0, 0, 0)
+    local c2 = porygon.color.rgb8(255, 255, 255)
+    local c3 = c1:lerp(c2, 0.5)
+    local r, g, b = c3:to_rgb8()
+
+    -- Should be about in the middle
+    local assert_middle = function(x)
+        assert(x == 0x7f or x == 0x80)
+    end
+
+    assert_middle(r)
+    assert_middle(g)
+    assert_middle(b)
+end
+
 local test_pattern = function()
-    local c1 = porygon.color.new{r = 0x1, g = 0x2, b = 0x3}
-    local c2 = porygon.color.new{r = 0x2, g = 0x1, b = 0x3}
+    local c1 = porygon.color.rgb4(1, 2, 3)
+    local c2 = porygon.color.rgb4(2, 1, 3)
     local p1 = porygon.pattern.new{duration = 125, color = c1, intensity = 7}
     local p2 = porygon.pattern.new{duration = 150, color = c1, intensity = 7}
     assert_equals(p1, p2) -- should round duration up
@@ -317,50 +354,50 @@ local test_pattern = function()
 end
 
 local test_pattern_invalid = function()
-    local color = porygon.color.new{r = 0x1, g = 0x2, b = 0x3}
+    local color = porygon.color.rgb4(1, 2, 3)
     assert_throws(function()
         porygon.pattern.new()
     end)
-    
+
     assert_throws(function()
         porygon.pattern.new{color = color, intensity = 7}
     end)
-    
+
     assert_throws(function()
         porygon.pattern.new{duration = 42, intensity = 7}
     end)
-    
+
     assert_throws(function()
         porygon.pattern.new{duration = 42, color = color}
     end)
-    
+
     assert_throws(function()
         porygon.pattern.new{duration = -1, color = color, intensity = 0}
     end)
-    
+
     assert_throws(function()
         porygon.pattern.new{duration = 100000, color = color, intensity = 0}
     end)
-    
+
     assert_throws(function()
         porygon.pattern.new{duration = 42, color = 42, intensity = 0}
     end)
-    
+
     assert_throws(function()
         porygon.pattern.new{duration = 42, color = {}, intensity = 0}
     end)
-    
+
     assert_throws(function()
         porygon.pattern.new{duration = 42, color = {}, intensity = -1}
     end)
-    
+
     assert_throws(function()
         porygon.pattern.new{duration = 42, color = {}, intensity = 100}
     end)
 end
 
 local test_packet = function()
-    local c1 = porygon.color.new{r = 0x1, g = 0x2, b = 0x3}
+    local c1 = porygon.color.rgb4(1, 2, 3)
     local p1 = porygon.pattern.new{duration = 125, color = c1, intensity = 7}
     local packet1 = porygon.packet.build(25, 7, function(p)
         p:add(p1)
@@ -495,7 +532,7 @@ local test_packet_round_trip_full = function()
         for i=1,31 do
             packet:add{
                 duration = i,
-                color = porygon.color.rgb(math.random(), math.random(), math.random()),
+                color = porygon.color.rgb4(7, 8, 7),
                 intensity = i % 8
             }
         end
@@ -547,6 +584,7 @@ local tests = {
     {color_rgb8_invalid = test_color_rgb8_invalid},
     {color_rgb4 = test_color_rgb4},
     {color_rgb4_invalid = test_color_rgb4_invalid},
+    {color_lerp = test_color_lerp},
     {pattern = test_pattern},
     {pattern_invalid = test_pattern_invalid},
     {packet = test_packet},
@@ -568,8 +606,6 @@ for i, t in ipairs(tests) do
             print(" ok.")
         else
             print(string.format(" failed: %s", tostring(err)))
-            print('Tests halted.')
-            return 1
         end
     end
 end

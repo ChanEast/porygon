@@ -40,7 +40,7 @@ local packet = porygon.packet.build(0, 7, function(packet)
     for i=0,15 do
         packet:add{duration = 250, color = colors[(i % 3) + 1], intensity = i % 8}
     end
-end):serialize()
+end):pack()
 
 -- If we had a working bluetooth LE binding, we'd send it instead of printing
 -- here:
