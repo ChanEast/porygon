@@ -81,61 +81,129 @@ return (function()
         return klass
     end
 
-    local valid_rgb = function(x)
+    local valid_number = function(x)
+        return is_a(x, 'number')
+    end
+    local valid_normal = function(x)
+        return is_a(x, 'number') and
+               x >= 0.0 and x <= 1.0
+    end
+    local valid_8bit = function(x)
+        return is_a(x, 'number') and
+               x >= 0 and x <= 0xff
+    end
+    local valid_4bit = function(x)
         return is_a(x, 'number') and
                x >= 0 and x <= 0xf
+    end
+    local valid_3bit = function(x)
+        return is_a(x, 'number') and
+               x >= 0 and x <= 7
     end
 
     porygon.color = ctor(function(color, obj)
         -- Nothing for now
-    end, {r = valid_rgb, g = valid_rgb, b = valid_rgb})
+    end, {x = valid_number, y = valid_number, z = valid_number})
 
-    porygon.color.rgb = function(r, g, b)
-        local rgbto4 = function(v)
-            if not is_a(v, 'number') or v < 0.0 or v > 1.0 then
-                err('invalid floating-point RGB value')
-            end
-
-            return math.floor((v * 0xf) + 0.5)
+    local multiply_color = function(m, a, b, c)
+        if #m ~= 9 then
+            err 'invalid matrix'
         end
 
-        return porygon.color.rgb4(rgbto4(r), rgbto4(g), rgbto4(b))
+        return
+            m[1] * a + m[2] * b + m[3] * c,
+            m[4] * a + m[5] * b + m[6] * c,
+            m[7] * a + m[8] * b + m[9] * c
+    end
+
+    local round_color = function(x, scale)
+        return math.floor(scale * x + 0.5)
+    end
+
+    local cie1931_forward = {
+        -- CIE 1931 specifies the transform in fixed-precision
+        0.49000, 0.31000, 0.20000,
+        0.17697, 0.81240, 0.01063,
+        0.00000, 0.01000, 0.99000
+    }
+
+    local cie1931_inverse = {
+        -- This transform is approximate
+        0.41847, -0.15866, -0.082835,
+        -0.091169, 0.25243, 0.015708,
+        0.00092090, -0.0025498, 0.17860
+    }
+
+    do
+        -- The forward matrix is postmultiplied by a constant, do that now
+        local tmp = cie1931_forward[4]
+        for i, v in ipairs(cie1931_forward) do
+            cie1931_forward[i] = v / tmp
+        end
+    end
+
+    porygon.color.rgb = function(r, g, b)
+        if not valid_normal(r) or not valid_normal(g) or not valid_normal(b) then
+            err 'invalid RGB values'
+        end
+
+        local x, y, z = multiply_color(cie1931_forward, r, g, b)
+        return porygon.color.new{x = x, y = y, z = z}
     end
 
     porygon.color.rgb8 = function(r, g, b)
-        local rgb8to4 = function(v)
-            if not is_a(v, 'number') or v < 0 or v > 0xff then
-                err('invalid 8-bit RGB value')
-            else
-                v = math.floor(v)
-            end
-
-            -- Truncate the value by taking the upper 4 bits
-            local w = bit32.rshift(v, 4)
-
-            -- Decide if we should round the higher-order bits up
-            if w < 0xf then
-                v = bit32.band(v, 0xf)
-                if v >= 0x8 then
-                    w = w + 1
-                end
-            end
-
-            return w
+        if not valid_8bit(r) or not valid_8bit(g) or not valid_8bit(b) then
+            err 'invalid 8-bit RGB values'
         end
 
-        return porygon.color.rgb4(rgb8to4(r), rgb8to4(g), rgb8to4(b))
+        return porygon.color.rgb(r / 0xff, g / 0xff, b / 0xff)
     end
 
     porygon.color.rgb4 = function(r, g, b)
-        return porygon.color.new{r = r, g = g, b = b}
+        if not valid_4bit(r) or not valid_4bit(g) or not valid_4bit(b) then
+            err 'invalid 4-bit RGB values'
+        end
+
+        return porygon.color.rgb(r / 0xf, g / 0xf, b / 0xf)
     end
 
     function porygon.color:equals(other)
         return is_instance(other, porygon.color) and
-               self.r == other.r and
-               self.g == other.g and
-               self.b == other.b
+               self.x == other.x and
+               self.y == other.y and
+               self.z == other.z
+    end
+
+    function porygon.color:lerp(other, ratio)
+        local interp = function(a, b)
+            return a + (b - a) * ratio
+        end
+
+        return porygon.color.new{
+            x = interp(self.x, other.x),
+            y = interp(self.y, other.y),
+            z = interp(self.z, other.z)
+        }
+    end
+
+    function porygon.color:to_rgb()
+        return multiply_color(cie1931_inverse, self.x, self.y, self.z)
+    end
+
+    function porygon.color:to_rgb8()
+        local r, g, b = self:to_rgb()
+        return
+            round_color(r, 0xff),
+            round_color(g, 0xff),
+            round_color(b, 0xff)
+    end
+
+    function porygon.color:to_rgb4()
+        local r, g, b = self:to_rgb()
+        return
+            round_color(r, 0xf),
+            round_color(g, 0xf),
+            round_color(b, 0xf)
     end
 
     local max_duration = 0xff * 50
@@ -145,10 +213,6 @@ return (function()
     end
     local valid_color = function(x)
         return is_instance(x, porygon.color)
-    end
-    local valid_3bit = function(x)
-        return is_a(x, 'number') and
-               x >= 0 and x <= 7
     end
     local round_duration = function(duration)
         return math.floor((duration / 50) + 0.5) * 50
@@ -235,15 +299,15 @@ return (function()
         -- pattern[2]: IVVVBBBB, where I is the "fade" bit, V is vibration level,
         -- and B is blue
         for i, p in ipairs(self.patterns) do
-            local color = p.color
+            local r, g, b = p.color:to_rgb4()
             table.insert(packet, m50e(p.duration))
             table.insert(packet, bit32.bor(
-                                     bit32.lshift(bit32.extract(color.g, 0, 4), 4),
-                                     bit32.extract(color.r, 0, 4)))
+                                     bit32.lshift(bit32.extract(g, 0, 4), 4),
+                                     bit32.extract(r, 0, 4)))
             table.insert(packet, bit32.bor(
                                      bit32.lshift(p.interpolate and 1 or 0, 7),
                                      bit32.lshift(bit32.extract(p.intensity, 0, 3), 4),
-                                     bit32.extract(color.b, 0, 4)))
+                                     bit32.extract(b, 0, 4)))
         end
 
         return string.char(table.unpack(packet))
