@@ -31,7 +31,7 @@ local str2hex = function(str)
     return str
 end
 
-local packet = porygon.packet.build(0, 7, function(packet)
+local packet = porygon.control.build(0, 7, function(packet)
     local r = porygon.color.rgb8(255, 0, 0)
     local g = porygon.color.rgb8(0, 255, 0)
     local b = porygon.color.rgb8(0, 0, 255)

@@ -396,66 +396,66 @@ local test_pattern_invalid = function()
     end)
 end
 
-local test_packet = function()
+local test_control = function()
     local c1 = porygon.color.rgb4(1, 2, 3)
     local p1 = porygon.pattern.new{duration = 125, color = c1, intensity = 7}
-    local packet1 = porygon.packet.build(25, 7, function(p)
+    local packet1 = porygon.control.build(25, 7, function(p)
         p:add(p1)
     end)
-    local packet2 = porygon.packet.build(50, 7, function(p)
+    local packet2 = porygon.control.build(50, 7, function(p)
         p:add(p1)
     end)
     assert(#packet1.patterns == 1)
     assert_equals(packet1, packet2)
 
-    local packet3 = porygon.packet.build(25, 6, function(p)
+    local packet3 = porygon.control.build(25, 6, function(p)
         p:add(p1)
     end)
     assert_not_equals(packet1, packet3)
 
-    local packet4 = porygon.packet.build(25, 7, function(p)
+    local packet4 = porygon.control.build(25, 7, function(p)
     end)
     assert_not_equals(packet1, packet4)
 
-    local packet5 = porygon.packet.build(25, 7, function(p)
+    local packet5 = porygon.control.build(25, 7, function(p)
         p:add(p1)
         p:add(p1)
     end)
     assert_not_equals(packet1, packet5)
 end
 
-local test_packet_invalid = function()
+local test_control_invalid = function()
     assert_throws(function()
-        porygon.packet.new()
+        porygon.control.new()
     end)
 
     assert_throws(function()
-        porygon.packet.new{priority = 7}
+        porygon.control.new{priority = 7}
     end)
 
     assert_throws(function()
-        porygon.packet.new{delay = 42}
+        porygon.control.new{delay = 42}
     end)
 
     assert_throws(function()
-        porygon.packet.new{delay = -1, priority = 0}
+        porygon.control.new{delay = -1, priority = 0}
     end)
 
     assert_throws(function()
-        porygon.packet.new{delay = 100000, priority = 0}
+        porygon.control.new{delay = 100000, priority = 0}
     end)
 
     assert_throws(function()
-        porygon.packet.new{delay = 42, priority = -1}
+        porygon.control.new{delay = 42, priority = -1}
     end)
 
     assert_throws(function()
-        porygon.packet.new{delay = 42, priority = 100}
+        porygon.control.new{delay = 42, priority = 100}
     end)
 end
 
-local test_packet_add = function()
-    local packet = porygon.packet.new{delay = 42, priority = 4}
+local test_control_add = function()
+    local packet = porygon.control.new{delay = 42, priority = 4}
     local r = porygon.color.rgb8(255, 0, 0)
     local g = porygon.color.rgb8(0, 255, 0)
     local b = porygon.color.rgb8(0, 0, 255)
@@ -474,41 +474,41 @@ end
 
 function round_trip(original)
     local packed = original:pack()
-    local unpacked = porygon.packet.unpack(packed)
+    local unpacked = porygon.control.unpack(packed)
     local repacked = unpacked:pack()
     assert_equals(original, unpacked)
     assert_equals(packed, repacked)
 end
 
-local test_packet_unpack = function()
-    local empty_packet = porygon.packet.unpack("\0\0\0\0")
+local test_control_unpack = function()
+    local empty_packet = porygon.control.unpack("\0\0\0\0")
     assert_throws(function()
-        porygon.packet.unpack(nil)
+        porygon.control.unpack(nil)
     end)
 
     assert_throws(function()
         -- Invalid length
-        porygon.packet.unpack("")
+        porygon.control.unpack("")
     end)
 
     assert_throws(function()
         -- Invalid length
-        porygon.packet.unpack("\0")
+        porygon.control.unpack("\0")
     end)
 
     assert_throws(function()
         -- Invalid length
-        porygon.packet.unpack("\0\0\0\0\0")
+        porygon.control.unpack("\0\0\0\0\0")
     end)
 
     assert_throws(function()
         -- Says one, has zero
-        porygon.packet.unpack("\0\0\0\1")
+        porygon.control.unpack("\0\0\0\1")
     end)
 
     assert_throws(function()
         -- Says one, has two
-        porygon.packet.unpack("\0\0\0\1\0\0\0\1\1\1")
+        porygon.control.unpack("\0\0\0\1\0\0\0\1\1\1")
     end)
 
     assert_throws(function()
@@ -518,17 +518,17 @@ local test_packet_unpack = function()
             local pattern = string.char(i, i, i)
             packet = packet .. pattern
         end
-        porygon.packet.unpack(packet)
+        porygon.control.unpack(packet)
     end)
 end
 
-local test_packet_round_trip_empty = function()
-    local original = porygon.packet.build(25, 0)
+local test_control_round_trip_empty = function()
+    local original = porygon.control.build(25, 0)
     round_trip(original)
 end
 
-local test_packet_round_trip_full = function()
-    local original = porygon.packet.build(50, 7, function(packet)
+local test_control_round_trip_full = function()
+    local original = porygon.control.build(50, 7, function(packet)
         for i=1,31 do
             packet:add{
                 duration = i,
@@ -587,12 +587,12 @@ local tests = {
     {color_lerp = test_color_lerp},
     {pattern = test_pattern},
     {pattern_invalid = test_pattern_invalid},
-    {packet = test_packet},
-    {packet_invalid = test_packet_invalid},
-    {packet_add = test_packet_add},
-    {packet_unpack = test_packet_unpack},
-    {packet_round_trip_empty = test_packet_round_trip_empty},
-    {packet_round_trip_full = test_packet_round_trip_full},
+    {control = test_control},
+    {control_invalid = test_control_invalid},
+    {control_add = test_control_add},
+    {control_unpack = test_control_unpack},
+    {control_round_trip_empty = test_control_round_trip_empty},
+    {control_round_trip_full = test_control_round_trip_full},
     {device = test_device},
     {device_setters = test_device_setters}
 }

@@ -231,13 +231,13 @@ return (function()
                self.color:equals(other.color)
     end
 
-    porygon.packet = ctor(function(packet, obj)
-        packet.patterns = {}
-        packet.delay = round_duration(packet.delay)
+    porygon.control = ctor(function(control, obj)
+        control.patterns = {}
+        control.delay = round_duration(control.delay)
     end, {delay = valid_duration, priority = valid_3bit})
 
-    function porygon.packet:equals(other)
-        local continue = is_instance(other, porygon.packet) and
+    function porygon.control:equals(other)
+        local continue = is_instance(other, porygon.control) and
                          self.delay == other.delay and
                          self.priority == other.priority
 
@@ -272,14 +272,14 @@ return (function()
     end
 
     local max_patterns = 31
-    function porygon.packet:add(obj)
+    function porygon.control:add(obj)
         if #self.patterns == max_patterns then
             err('too many patterns, max is %d', max_patterns)
         end
         table.insert(self.patterns, porygon.pattern.new(obj))
     end
 
-    function porygon.packet:pack()
+    function porygon.control:pack()
         -- header (4 bytes)
         -- packet[0]: time to wait for input, in m50
         -- packet[1]: 0 (unknown: seen 2 and 254)
@@ -313,22 +313,22 @@ return (function()
         return string.char(table.unpack(packet))
     end
 
-    porygon.packet.build = function(delay, priority, fn)
-        local packet = porygon.packet.new{delay = delay, priority = priority}
+    porygon.control.build = function(delay, priority, fn)
+        local packet = porygon.control.new{delay = delay, priority = priority}
         if is_a(fn, 'function') then
             fn(packet)
         end
         return packet
     end
 
-    porygon.packet.unpack = function(message)
+    porygon.control.unpack = function(message)
         if not is_a(message, 'string') then
-            err('message must be a string')
+            err('control packet must be a string')
         end
 
         local len = string.len(message)
         if len < 4 or (len - 4) % 3 ~= 0 then
-            err('message length `%d` is invalid', len)
+            err('control packet length `%d` is invalid', len)
         end
 
         local delay = m50d(string.byte(message, 1))
@@ -336,11 +336,11 @@ return (function()
         local priority = bit32.extract(patterns, 5, 3)
         patterns = bit32.extract(patterns, 0, 5)
         if (len - 4) / 3 ~= patterns then
-            err('packet has invalid length for %d %s',
+            err('control packet has invalid length for %d %s',
                   patterns, patterns == 1 and 'pattern' or 'patterns')
         end
 
-        local packet = porygon.packet.new{delay = delay, priority = priority}
+        local packet = porygon.control.new{delay = delay, priority = priority}
         local idx = 5
 
         for i=1,patterns do
@@ -364,6 +364,23 @@ return (function()
 
         return packet
     end
+
+    local valid_tag = function(t)
+        if is_a(t, 'string') then
+            local len = string.len(t)
+            return len > 0 and len <= 16
+        else
+            return false
+        end
+    end
+
+    local valid_payload = function(p)
+        return is_a(p, 'string')
+    end
+
+    porygon.message = ctor(function(msg)
+
+    end, {tag = valid_tag, payload = valid_payload})
 
     porygon.device = ctor(function(device)
         device:_init()
